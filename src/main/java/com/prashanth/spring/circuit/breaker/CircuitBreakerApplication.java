@@ -2,6 +2,7 @@ package com.prashanth.spring.circuit.breaker;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
+import lombok.extern.log4j.Log4j2;
 import org.reactivestreams.Publisher;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -66,12 +67,19 @@ class FailingRestController {
     }
 }
 
+@Log4j2
 @Service
 class FailingService {
 
     Mono<String> greet(Optional<String> name) {
-        return name.map(str -> Mono.just("Hola " + str))
-                    .orElse(Mono.error(new NullPointerException()));
+        long secondsToDelay = (long) (Math.random() * 10);
+        return name.map(str -> {
+                        String message = "Hola " + str + " in " + secondsToDelay;
+                        log.info(message);
+                        return Mono.just(message);
+                     })
+                    .orElse(Mono.error(new NullPointerException()))
+                    .delayElement(Duration.ofSeconds(secondsToDelay));
     }
 }
 
