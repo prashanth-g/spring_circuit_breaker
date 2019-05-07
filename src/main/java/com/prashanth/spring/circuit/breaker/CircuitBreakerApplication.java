@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 @SpringBootApplication
 public class CircuitBreakerApplication {
+
     public static void main(String[] args) {
         SpringApplication.run(CircuitBreakerApplication.class, args);
     }
@@ -44,42 +45,7 @@ public class CircuitBreakerApplication {
     }
 }
 
-@RestController
-class FailingRestController {
-    private final FailingService failingService;
-    private final ReactiveCircuitBreaker reactiveCircuitBreaker;
 
-    FailingRestController(FailingService failingService,
-                          ReactiveCircuitBreakerFactory reactiveCircuitBreakerFactory) {
-        this.failingService = failingService;
-        this.reactiveCircuitBreaker = reactiveCircuitBreakerFactory.create("greet");
-    }
 
-    @GetMapping("/greet")
-    Publisher<String> greet(@RequestParam Optional<String> name) {
-        Mono<String> greetMessage = this.failingService.greet(name);
-        return this.reactiveCircuitBreaker.run(greetMessage, new Function<Throwable, Mono<String>>() {
-            @Override
-            public Mono<String> apply(Throwable throwable) {
-                return Mono.just("Hola from failing service!");
-            }
-        });
-    }
-}
 
-@Log4j2
-@Service
-class FailingService {
-
-    Mono<String> greet(Optional<String> name) {
-        long secondsToDelay = (long) (Math.random() * 10);
-        return name.map(str -> {
-                        String message = "Hola " + str + " in " + secondsToDelay;
-                        log.info(message);
-                        return Mono.just(message);
-                     })
-                    .orElse(Mono.error(new NullPointerException()))
-                    .delayElement(Duration.ofSeconds(secondsToDelay));
-    }
-}
 
